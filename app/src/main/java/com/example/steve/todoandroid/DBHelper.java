@@ -1,3 +1,10 @@
+/***************************************************************************************************
+ DBHelper.java
+ Last updated: Steve Chou 6/17/2016
+
+ Helper class for sqlite support for persistent data.Reads and writes to ToDo.db
+
+ **************************************************************************************************/
 package com.example.steve.todoandroid;
 
 import java.util.ArrayList;
@@ -14,6 +21,7 @@ import android.widget.Toast;
 
 public class DBHelper extends SQLiteOpenHelper {
 
+    //Column references
     public static final String DATABASE_NAME = "ToDo.db";
     public static final String TODO_LIST_TABLE_NAME = "TODO_LIST_ITEMS";
     public static final String TODO_LIST_ITEM = "todo_list_item";
@@ -21,7 +29,7 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String TODO_LIST_PRIORITY = "priority";
     public static final String TODO_LIST_DUE_DATE = "due_date";
     public static final String TODO_LIST_STATUS = "status";
-    private HashMap hp;
+
 
     public DBHelper(Context context)
     {
@@ -65,6 +73,7 @@ public class DBHelper extends SQLiteOpenHelper {
         return true;
     }
 
+    //updates list item according to position.
     public boolean updateListItem(Integer id, String listItem, String priority, String dueDate, boolean completed)
     {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -78,13 +87,13 @@ public class DBHelper extends SQLiteOpenHelper {
         return true;
     }
 
-    //delete
+    //delete 1 item
     public Integer deleteListItem (Integer id)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         return db.delete("toDoListItems",
                 "id = ? ",
-                new String[] { Integer.toString(id) });
+                new String[] { Integer.toString(id+1) });
     }
 
     //fetch queries----------------------------
@@ -94,6 +103,7 @@ public class DBHelper extends SQLiteOpenHelper {
         return db.rawQuery( "select * from toDoListItems where id="+id+"", null );
     }
 
+    //fetches all the data from the db
     public ArrayList<String> getAllListItems()
     {
         ArrayList<String> array_list = new ArrayList<String>();
@@ -104,6 +114,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
         while(!res.isAfterLast()){
             //add something to array list items
+            //TODO: will need to return other attributes (dates, priority) when we add them.
             array_list.add(res.getString(res.getColumnIndex(TODO_LIST_ITEM)));
             res.moveToNext();
         }

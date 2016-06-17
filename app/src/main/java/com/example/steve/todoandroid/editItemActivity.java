@@ -1,3 +1,13 @@
+/***************************************************************************************************
+editItemAcivity.java
+ Last updated: Steve Chou 6/17/2016
+
+ References activity_edit_item.xml
+
+ Activity helper for launching intent of edit window.  Will be deprecated once we use fragments.
+
+ **************************************************************************************************/
+
 package com.example.steve.todoandroid;
 
 import android.content.DialogInterface;
@@ -9,10 +19,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
-
-
-
 
 public class editItemActivity extends AppCompatActivity {
 

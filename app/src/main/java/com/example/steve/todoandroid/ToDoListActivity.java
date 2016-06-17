@@ -1,9 +1,35 @@
+/***************************************************************************************************
+ToDoListActivity.java
+ Last updated: Steve Chou 6/17/2016
+
+ References activity_to_do_list.xml
+
+ Main activity. A very basic to-do list with the following functionalities:
+
+ 1) List view for item list
+ 2) Intent to launch edit screen
+ 3) Stores data via sqllite.
+
+ Future functionalities:
+
+ 1) Launch edit screen via fragment
+ 2) Edit screen to include date, priority and whether the task is finished.
+ 3) prettier screens
+ 4) Want to do categories.  Embedded lists.
+ 5) add ability to add task to calender?
+ 6) Checkbox for the view list so you don't have to open a screen to complete a task.
+
+ Basic improvements:
+ 1) Maybe move alerts into separate helper function
+ 2)
+
+ **************************************************************************************************/
+
 package com.example.steve.todoandroid;
 
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,11 +42,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
-
-import org.apache.commons.io.FileUtils;
-
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 
 public class ToDoListActivity extends Activity {
@@ -52,10 +73,11 @@ public class ToDoListActivity extends Activity {
         toDoList.setAdapter(toDoListAdapter);
 
         setupItemListClickListener();
+        setupItemListLongClickListener();
     }
 
-    //save stuff on pause
     /*
+    //save stuff on pause
     @Override
     protected void onPause()
     {
@@ -89,8 +111,7 @@ public class ToDoListActivity extends Activity {
         toDoList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //Toast.makeText(ToDoListActivity.this,"Hello World",Toast.LENGTH_SHORT).show();
-                Toast.makeText(ToDoListActivity.this,"pre save pos: " + position + "id: " + id,Toast.LENGTH_SHORT).show();
+                //Toast.makeText(ToDoListActivity.this,"pre save pos: " + position + "id: " + id,Toast.LENGTH_SHORT).show();
                 launchEditItemActivity(toDoList.getItemAtPosition(position).toString(), position);
             }
         });
@@ -101,10 +122,21 @@ public class ToDoListActivity extends Activity {
     {
         toDoList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> adapter,View item, int pos, long id) {
-
+            public boolean onItemLongClick(AdapterView<?> adapter, View item, int pos, long id) {
+                final int position = pos;
+                AlertDialog.Builder alert = new AlertDialog.Builder(ToDoListActivity.this);
+                alert.setTitle("Alert!!");
+                alert.setMessage("This will remove the list item");
+                alert.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                               items.remove(position);
+                                toDoListDB.deleteListItem(position);
+                                toDoListAdapter.notifyDataSetChanged();
+                            }})
+                        .setNegativeButton(android.R.string.no, null).show();
                 return true;
             }
+
         });
     }
 
