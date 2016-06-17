@@ -111,7 +111,7 @@ public class ToDoListActivity extends Activity {
         toDoList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //Toast.makeText(ToDoListActivity.this,"pre save pos: " + position + "id: " + id,Toast.LENGTH_SHORT).show();
+                Toast.makeText(ToDoListActivity.this,"pre save pos: " + position + "id: " + id,Toast.LENGTH_SHORT).show();
                 launchEditItemActivity(toDoList.getItemAtPosition(position).toString(), position);
             }
         });
@@ -129,24 +129,61 @@ public class ToDoListActivity extends Activity {
                 alert.setMessage("This will remove the list item");
                 alert.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
-                               items.remove(position);
+                                items.remove(position);
                                 toDoListDB.deleteListItem(position);
+                                updateDBPositions();
                                 toDoListAdapter.notifyDataSetChanged();
                             }})
                         .setNegativeButton(android.R.string.no, null).show();
                 return true;
             }
-
         });
     }
 
-    //List Methods --------------------------------------------------------------------
+    //this method fixes the positions being off after you delete a record.
+    // Since we're trying to ID the DB records using listview positions, every time you delete something in the middle of the list we need to shift everything.
+    private void updateDBPositions()
+    {
+        ArrayList<String> prevPos;
+        prevPos = toDoListDB.getAllListPos();
+
+        //for debugging purposes.
+        /*for(int i=0 ; i<items.size() ; i++)
+        {
+            Log.d("items= ", items.get(i));
+        }*/
+
+        //update all positions that have changed.  Since the list view always uses a sequential position, the DB needs to keep track of what position the record is currently in.
+        for(int i=0 ; i<prevPos.size() ; i++)
+        {
+            //Log.d("DB items= ", "current pos = " + i + " DB pos = " + prevPos.get(i));
+
+            //Note: This should be done using a key-value pair.  The ID is the primary key on the DB, whereas the pos is not so this is a hackish solution.
+            // While POS is unique due to the nature of listview, it's better to properly identify the key-value pair using a PK+position.
+            if (i !=  Integer.parseInt(prevPos.get(i)))
+            {
+                toDoListDB.updateListPos(Integer.parseInt(prevPos.get(i)),i);
+            }
+        }
+
+        /*debug purposes only
+        prevPos = toDoListDB.getAllListPos();
+        for(int i=0 ; i<prevPos.size() ; i++)
+        {
+            Log.d("after DB items= ", "current pos = " + i + " DB pos = " + prevPos.get(i));
+        }*/
+    }
+
+
+    //ListView Methods --------------------------------------------------------------------
+
 
     //adds a new item to the listview
     public void onAdd(View v)
     {
         EditText newTask = (EditText) findViewById(R.id.etxtListItem);
         String itemText = newTask.getText().toString();
+
         if (itemText.matches(""))
         {
             AlertDialog alertDialog = new AlertDialog.Builder(ToDoListActivity.this).create();
@@ -163,15 +200,16 @@ public class ToDoListActivity extends Activity {
         else
         {
             toDoListAdapter.add(itemText);
+            int curPos = toDoListAdapter.getPosition(itemText);
             toDoListAdapter.notifyDataSetChanged();
+            //Toast.makeText(ToDoListActivity.this,"ADDING POS " + curPos,Toast.LENGTH_SHORT).show();
+
+            newTask.setText("");
+            //Todo: add piece that lets you specify urgency.
+            //Todo: add piece that lets you specify an actual date
+            toDoListDB.addListItem(curPos, itemText,PRIORITY_NORMAL,"Jan 01 2015",false);
+            updateDBPositions();
         }
-
-        newTask.setText("");
-
-        //Todo: add piece that lets you specify urgency.
-        //Todo: add piece that lets you specify an actual date
-        toDoListDB.addListItem(itemText,PRIORITY_NORMAL,"Jan 01 2015",false);
-
     }
 
     //launch edit screen (editItemActivity) via intent.  Pass in the current text of list item you clicked on and the position
@@ -196,8 +234,6 @@ public class ToDoListActivity extends Activity {
         {
             String editedString = data.getExtras().getString("revised_listItem");
             int pos = data.getExtras().getInt("List_Item_Position");
-
-            //set item for listviewAdapter and update the view.
             items.set(pos, editedString);
 
             //TO DO: update to use priority, and proper date instead of hard coded 1/1/2015.
