@@ -33,7 +33,7 @@ The following **additional** features are implemented:
 
 Here's a walkthrough of implemented user stories:
 
-<img src='http://i.imgur.com/mn9JAaE.gif' title='Video Walkthrough' width='' alt='Video Walkthrough' />
+http://i.imgur.com/mn9JAaE.gif
 
 GIF created with EZGif and AZ Screen Recorder
 
