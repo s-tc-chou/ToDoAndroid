@@ -108,7 +108,8 @@ public class editScreenFragment extends DialogFragment {
 
                 String priority = spnPriority.getSelectedItem().toString();
                 String editText = editTask.getText().toString();
-                int month = dueDate.getMonth();
+                //date picker normalizes month while month starts at 0,, so need to add 1 when saving.
+                int month = dueDate.getMonth() +1 ;
                 int day = dueDate.getDayOfMonth();
                 int year = dueDate.getYear();
 
