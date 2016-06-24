@@ -7,9 +7,15 @@
  **************************************************************************************************/
 package com.example.steve.todoandroid;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Locale;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -92,15 +98,6 @@ public class DBHelper extends SQLiteOpenHelper {
     //updates list item according to position.
     public boolean updateListItem(Integer pos, String listItem, String priority, String dueDate, boolean completed)
     {
-        //Log.d("UPDATELISTITEM", "id: " + (id +1) + "list item to update: " + listItem);
-        /*SQLiteDatabase rdb = this.getReadableDatabase();
-        Cursor res = rdb.rawQuery( "select * from toDoListItems where todo_list_item="+listItem+"", null );
-        res.moveToFirst();
-        String item = res.getString(res.getColumnIndex(TODO_LIST_ITEM));
-        String DBid = res.getString(res.getColumnIndex(TODO_LIST_COLUMN_ID));
-        Log.d("UPDATELISTITEM", "id: " + (DBid) + "list item to update: " + item);
-*/
-
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put("todo_list_item", listItem);
@@ -135,15 +132,50 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor res =  db.rawQuery( "select * from toDoListItems", null );
         res.moveToFirst();
 
+
+
         while(!res.isAfterLast()){
             //add something to array list items
-            //TODO: will need to return other attributes (dates, priority) when we add them.
             array_list.add(res.getString(res.getColumnIndex(TODO_LIST_ITEM)));
             res.moveToNext();
         }
 
         res.close();
         return array_list;
+    }
+
+    public bundleDB getListItemAtPos(int pos)
+    {
+        bundleDB listItem = new bundleDB();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        //should only return 1 item
+        Cursor res =  db.rawQuery( "select * from toDoListItems where cur_pos = " +pos, null );
+        res.moveToFirst();
+
+        //reformat date so we can add it to the db.
+        String dt = res.getString(res.getColumnIndex(TODO_LIST_DUE_DATE));
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat format = new SimpleDateFormat("MM dd yyyy", Locale.US);
+
+        //set the due date of item to be today
+        try {
+            cal.setTime(format.parse(dt));
+            //Log.d("settine time", cal.get(Calendar.DAY_OF_MONTH) +" " +  cal.get(Calendar.MONTH) + " " +  cal.get(Calendar.YEAR));
+            listItem.setDueDate(cal.get(Calendar.DAY_OF_MONTH),cal.get(Calendar.MONTH),cal.get(Calendar.YEAR));
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            Log.e("GetListItemAtPos", "couldn't set date");
+        }
+
+        listItem.setPriority(res.getString(res.getColumnIndex(TODO_LIST_PRIORITY)));
+        listItem.setListItemString(res.getString(res.getColumnIndex(TODO_LIST_ITEM)));
+        listItem.setCurPos(res.getInt(res.getColumnIndex(TODO_LIST_CUR_POS)));
+
+        return listItem;
+
     }
 
     //fetches all the data from the db
@@ -157,7 +189,6 @@ public class DBHelper extends SQLiteOpenHelper {
 
         while(!res.isAfterLast()){
             //add something to array list items
-            //TODO: will need to return other attributes (dates, priority) when we add them.
             array_list.add(res.getString(res.getColumnIndex(TODO_LIST_CUR_POS)));
             res.moveToNext();
         }
@@ -166,6 +197,11 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
+
+    private void parseDate()
+    {
+
+    }
 
 }
 

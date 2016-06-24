@@ -9,11 +9,13 @@ ToDoListActivity.java
  1) List view for item list
  2) Intent to launch edit screen
  3) Stores data via sqllite.
+ 4) launches edit screen via a fragment.
+ 5) includes Priority and dates.
 
  Future functionalities:
 
- 1) Launch edit screen via fragment
- 2) Edit screen to include date, priority and whether the task is finished.
+ 1) --
+ 2) Edit screen to include whether the task is finished.
  3) prettier screens
  4) Want to do categories.  Embedded lists.
  5) add ability to add task to calender?
@@ -21,7 +23,6 @@ ToDoListActivity.java
 
  Basic improvements:
  1) Maybe move alerts into separate helper function
- 2)
 
  **************************************************************************************************/
 
@@ -30,40 +31,49 @@ package com.example.steve.todoandroid;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
-import java.util.ArrayList;
 
-public class ToDoListActivity extends Activity {
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+
+public class ToDoListActivity extends AppCompatActivity implements editScreenFragment.onEditFinishedListener{
 
     private ListView toDoList;
     private ArrayAdapter<String> toDoListAdapter;
     private ArrayList<String> items;
-    DBHelper toDoListDB;
+    private DBHelper toDoListDB;
 
     //static variables
     private final int REQUEST_CODE = 555;
-    private final String PRIORITY_URGENT = "Urgent";
-    private final String PRIORITY_NORMAL = "Normal";
+    private final String PRIORITY_VH = "Very High";
     private final String PRIORITY_HIGH = "High";
+    private final String PRIORITY_NORMAL = "Medium";
     private final String PRIORITY_LOW = "Low";
+    private final String PRIORITY_LOWEST = "Meh";
+
+    //bundled fragment variables used for DB.
+    private bundleDB dbVariables;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_to_do_list);
 
-        Button addButton = (Button) findViewById(R.id.btnAddButton);
         toDoListDB = new DBHelper(this);
         //toDoListDB.refresh(); //debug: clears db.
 
@@ -71,53 +81,34 @@ public class ToDoListActivity extends Activity {
         items = toDoListDB.getAllListItems();
         toDoListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,items);
         toDoList.setAdapter(toDoListAdapter);
+        dbVariables = new bundleDB();
 
         setupItemListClickListener();
         setupItemListLongClickListener();
     }
 
-    /*
-    //save stuff on pause
-    @Override
-    protected void onPause()
-    {
-        super.onPause();
-        writeItems();
-        toDoListAdapter.notifyDataSetChanged();
-    }
-
-    //read stuff on resume
-    @Override
-    protected void onResume()
-    {
-        super.onResume();
-        readItems();
-        toDoListAdapter.notifyDataSetChanged();
-    }*/
-
     //Listeners ------------------------------------------------------------------------------
     /*Future functionality:
-
         1) would like to add something to mark activity as complete, perhaps a checkbox in the listview.
         2) Update the style so its prettier
-        3) Add completion due-dates
-        4) Use dialogFragment
-
      */
 
-    //quick click listener will open up the edit screen (editItemActivity) and allow you to change the to-do item name.
+    //quick click listener will open up the edit screen in a dialog fragment (editScreenFragment) and allow you to change the to-do item name.
     private void setupItemListClickListener()
     {
         toDoList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(ToDoListActivity.this,"pre save pos: " + position + "id: " + id,Toast.LENGTH_SHORT).show();
-                launchEditItemActivity(toDoList.getItemAtPosition(position).toString(), position);
+                //Toast.makeText(ToDoListActivity.this,"pre save pos: " + position + "item: " + toDoList.getItemAtPosition(position).toString(),Toast.LENGTH_SHORT).show();
+
+                //get data from pos.  Need to make it so getter returns everything properly
+                dbVariables = toDoListDB.getListItemAtPos(position);
+                showEditDialog();
             }
         });
     }
 
-    //long click not used atm.  Rremove the item on long click, but add a confirmation screen.
+    //long click removes the item on long click with a confirmation screen.
     private void setupItemListLongClickListener()
     {
         toDoList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
@@ -147,17 +138,9 @@ public class ToDoListActivity extends Activity {
         ArrayList<String> prevPos;
         prevPos = toDoListDB.getAllListPos();
 
-        //for debugging purposes.
-        /*for(int i=0 ; i<items.size() ; i++)
-        {
-            Log.d("items= ", items.get(i));
-        }*/
-
         //update all positions that have changed.  Since the list view always uses a sequential position, the DB needs to keep track of what position the record is currently in.
         for(int i=0 ; i<prevPos.size() ; i++)
         {
-            //Log.d("DB items= ", "current pos = " + i + " DB pos = " + prevPos.get(i));
-
             //Note: This should be done using a key-value pair.  The ID is the primary key on the DB, whereas the pos is not so this is a hackish solution.
             // While POS is unique due to the nature of listview, it's better to properly identify the key-value pair using a PK+position.
             if (i !=  Integer.parseInt(prevPos.get(i)))
@@ -165,24 +148,50 @@ public class ToDoListActivity extends Activity {
                 toDoListDB.updateListPos(Integer.parseInt(prevPos.get(i)),i);
             }
         }
+    }
 
-        /*debug purposes only
-        prevPos = toDoListDB.getAllListPos();
-        for(int i=0 ; i<prevPos.size() ; i++)
-        {
-            Log.d("after DB items= ", "current pos = " + i + " DB pos = " + prevPos.get(i));
-        }*/
+    //Fragment functions ------------------------------------------
+    @Override
+    public void onEditFinish(String editText)
+    {
+        String editedString = editText;
+        String priority = dbVariables.getPriority();
+        //Toast.makeText(ToDoListActivity.this,"priority before update: " + priority,Toast.LENGTH_SHORT).show();
+        String date = dbVariables.getMonth() + " " + dbVariables.getDay() + " " + dbVariables.getYear();
+
+        items.set(dbVariables.getCurPos(), editedString);
+        toDoListDB.updateListItem(dbVariables.getCurPos(),editedString,priority,date,false);
+        toDoListAdapter.notifyDataSetChanged();
     }
 
 
+    //Helper to launch edit dialogfragment.
+    private void showEditDialog() {
+        FragmentManager fm = getSupportFragmentManager();
+        editScreenFragment editFragment = new editScreenFragment();
+        editFragment.setStyle(editFragment.STYLE_NORMAL, android.R.style.Theme_Holo);
+        editFragment.show(fm, "fragment_edit_name");
+    }
+
+    public bundleDB getCurrentDB()
+    {
+        return dbVariables;
+    }
+
+    public void setMainActivityDB(bundleDB myDB)
+    {
+        dbVariables = myDB;
+
+    }
+
     //ListView Methods --------------------------------------------------------------------
-
-
     //adds a new item to the listview
     public void onAdd(View v)
     {
         EditText newTask = (EditText) findViewById(R.id.etxtListItem);
         String itemText = newTask.getText().toString();
+        SimpleDateFormat df = new SimpleDateFormat("MM dd yyyy");
+        String date = df.format(Calendar.getInstance().getTime());
 
         if (itemText.matches(""))
         {
@@ -202,44 +211,13 @@ public class ToDoListActivity extends Activity {
             toDoListAdapter.add(itemText);
             int curPos = toDoListAdapter.getPosition(itemText);
             toDoListAdapter.notifyDataSetChanged();
-            //Toast.makeText(ToDoListActivity.this,"ADDING POS " + curPos,Toast.LENGTH_SHORT).show();
+            //Toast.makeText(ToDoListActivity.this,"cur time " + date,Toast.LENGTH_SHORT).show();
 
             newTask.setText("");
-            //Todo: add piece that lets you specify urgency.
-            //Todo: add piece that lets you specify an actual date
-            toDoListDB.addListItem(curPos, itemText,PRIORITY_NORMAL,"Jan 01 2015",false);
+            toDoListDB.addListItem(curPos, itemText,PRIORITY_NORMAL,date,false);
             updateDBPositions();
         }
     }
 
-    //launch edit screen (editItemActivity) via intent.  Pass in the current text of list item you clicked on and the position
-    private void launchEditItemActivity(String currentText, int pos)
-    {
-        Intent editItemActivity = new Intent(this, editItemActivity.class);
 
-        //pass the value of the list item you clicked on.
-        editItemActivity.putExtra("List_Item_String",currentText);
-        editItemActivity.putExtra("List_Item_Position", pos);
-
-        //start edit screen
-        startActivityForResult(editItemActivity,REQUEST_CODE);
-    }
-
-    //this gets called when the activity returns from editItemActivity. So lets write to file here too.
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if(resultCode == RESULT_OK && requestCode == REQUEST_CODE)
-        {
-            String editedString = data.getExtras().getString("revised_listItem");
-            int pos = data.getExtras().getInt("List_Item_Position");
-            items.set(pos, editedString);
-
-            //TO DO: update to use priority, and proper date instead of hard coded 1/1/2015.
-            toDoListDB.updateListItem(pos,editedString,PRIORITY_NORMAL,"Jan 01 2015",false);
-            toDoListAdapter.notifyDataSetChanged();
-        }
-
-    }
 }
