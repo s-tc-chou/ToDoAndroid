@@ -33,22 +33,15 @@ The following **additional** features are implemented:
 
 Here's a walkthrough of implemented user stories:
 
-http://i.imgur.com/mn9JAaE.gif
+http://i.imgur.com/9LbqVLK.gif
 
 GIF created with EZGif and AZ Screen Recorder
 
 ## Notes
 
-I had originally intended to include the fragment piece, since that's an important concept to be familiar with, and a lot of
-functionalities (priority, dates) would needed to be re-written once the fragment was done, so I put that off until the fragment
-was done.  However, I ran into a lot of issues around fragment behaviors (null pointers, background being clickable, view not
-expanding correctly and somehow including buttons, layout issues) so I reverted those changes so I can submit the prework on 
-time.
+With this version, I changed the edit screen to be a fragment and added priority and date support.  However the priority (which uses a spinner) needs some style fixes.  
 
-I also ran into issues with the SQLite revolving around removing list items and listview positions, and resolved it by 
-reordering the list items positions in the DB whenever a delete took place.  
-
-The vast majority of the time was spent on fragments and debugging SQLite.  
+I will be adding in additional pieces for a more custom looking listview and a categorized functionality to group your to-do items.  
 
 
 ## License
